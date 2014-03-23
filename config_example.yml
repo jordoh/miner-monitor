@@ -10,6 +10,6 @@ pools:
   -
     name: verters
     type: mpos
-    id: 123
+    user_id: 123
     url: https://pool.verters.com/index.php
     api_key: 1234

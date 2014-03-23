@@ -5,8 +5,19 @@ module Pools
   class Mpos
     class ResponseError < StandardError; end
 
-    def initialize(url, user_id, api_key)
-      @url, @user_id, @api_key = url, user_id, api_key
+    def initialize(config)
+      @url, @user_id, @api_key = config.values_at('url', 'user_id', 'api_key')
+
+      raise ArgumentError.new('MPos pool config requires a url key') unless url
+      raise ArgumentError.new('MPos pool config requires a user_id key') unless user_id
+      raise ArgumentError.new('MPos pool config requires an api_key key') unless api_key
+    end
+
+    def stats
+      {
+        :balance => balance,
+        :hashrate => hashrate
+      }
     end
 
     def balance
