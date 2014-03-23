@@ -1,0 +1,15 @@
+datadog:
+  api_key: '1234'
+
+cgminer:
+  -
+    name: miner1
+    hostname: "127.0.0.1"
+
+pools:
+  -
+    name: verters
+    type: mpos
+    id: 123
+    url: https://pool.verters.com/index.php
+    api_key: 1234

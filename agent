@@ -1,0 +1,8 @@
+#! /usr/bin/env ruby
+
+require 'rubygems'
+require 'bundler/setup'
+
+require_relative 'datadog_client'
+
+DatadogClient.new(File.expand_path('config.yml', File.dirname(__FILE__))).run
