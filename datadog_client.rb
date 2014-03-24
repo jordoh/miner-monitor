@@ -98,15 +98,15 @@ class DatadogClient
 
     exchange_client = Cryptsy::API::Client.new
 
-    markets = without_exceptions do
+    markets_data = without_exceptions do
       exchange_client.marketdata['return']['markets']
     end
-    return unless data
+    return unless markets_data
 
-    market = markets[pair]
-    raise ArgumentError.new("Unknown exchange pair #{ pair }") unless market
+    market_data = markets_data[pair]
+    raise ArgumentError.new("Unknown exchange pair #{ pair }") unless market_data
 
-    last_price = market['lasttradeprice'].to_f
+    last_price = market_data['lasttradeprice'].to_f
     if last_price > 0
       api.emit_point("exchange.cryptsy.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
     end
