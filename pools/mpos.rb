@@ -16,7 +16,8 @@ module Pools
     def stats
       {
         :balance => balance,
-        :hashrate => hashrate
+        :hashrate => hashrate,
+        :payout_per_hour => payout_per_hour
       }
     end
 
@@ -35,6 +36,21 @@ module Pools
 
     def workers
       request :getuserworkers
+    end
+
+    def payout_per_hour
+      data = request :getusertransactions
+      transactions = data['transactions']
+      return nil unless transactions.size > 1
+
+      total_payout = transactions.reduce(0) do |sum, transaction|
+        sum + (transaction['type'] == 'Credit' ? transaction['amount'] : 0)
+      end
+
+      seconds_elapsed = Time.parse(transactions.first['timestamp']) - Time.parse(transactions.last['timestamp'])
+      hours_elapsed = seconds_elapsed / 3600
+
+      total_payout / hours_elapsed
     end
 
     private
