@@ -1,4 +1,5 @@
 require 'cgminer/api'
+require 'cryptsy/api'
 require 'dogapi'
 require 'yaml'
 
@@ -32,21 +33,15 @@ class DatadogClient
 
   attr_reader :config, :datadog_config
 
-  def report_cgminer_stats(api, cgminer_config)
-    name, hostname, port = cgminer_config.values_at('name', 'hostname', 'port')
+  def report_miners_stats(api, miner_config)
+    name, hostname = required_config_values('miners', miner_config, 'name', 'hostname')
 
-    raise ArgumentError.new('cgminer.name key is required') unless name
-    raise ArgumentError.new('cgminer.hostname key is required') unless hostname
+    client = CGMiner::API::Client.new(hostname, miner_config['port'] || 4028)
 
-    client = CGMiner::API::Client.new(hostname, port || 4028)
-
-    summary = begin
+    summary = without_exceptions do
       client.summary.body.first
-    rescue Exception => e
-      $stderr.puts "Exception reporting cgminer stats for #{ hostname }:#{ port } : #{ e }"
-      e.backtrace.to_a.each { |backtrace_line| $stderr.puts backtrace_line }
-      return
     end
+    return unless summary
 
     [
       [ 'MHS 5s', 'hashrate.5s'],
@@ -84,27 +79,56 @@ class DatadogClient
     end
   end
 
-  def report_pools_stats(api, pool_configs)
-    pool_configs = [ pool_configs ] unless pool_configs.is_a?(Array)
+  def report_pools_stats(api, pool_config)
+    pool_name, pool_type = required_config_values('pools', pool_config, 'name', 'type')
 
-    pool_configs.each do |pool_config|
-      pool_name, pool_type = pool_config.values_at('name', 'type')
+    pool_class_name = Pools.constants.detect do |pool_class_name|
+      pool_class_name.to_s.downcase == pool_type.downcase
+    end
+    raise ArgumentError.new("Unknown pools[n].type key: #{ pool_type }") unless pool_class_name
 
-      raise ArgumentError.new('pools[n].name key is required') unless pool_name
-      raise ArgumentError.new('pools[n].type key is required') unless pool_type
+    pool_stats = Pools.const_get(pool_class_name).new(pool_config).stats
+    pool_stats.each do |stat_name, stat_value|
+      api.emit_point("pool.#{ pool_name.to_s.gsub(/\W/, '_') }.#{ stat_name }".downcase, stat_value)
+    end
+  end
 
-      pool_class_name = Pools.constants.detect do |pool_class_name|
-        pool_class_name.to_s.downcase == pool_type.downcase
-      end
-      raise ArgumentError.new("Unknown pools[n].type key: #{ pool_type }") unless pool_class_name
+  def report_exchange_rates_stats(api, exchange_rate_config)
+    pair = required_config_values('exchange_rates', exchange_rate_config, 'pair')
 
-      pool_class = Pools.const_get(pool_class_name)
+    exchange_client = Cryptsy::API::Client.new
 
-      pool_stats = pool_class.new(pool_config).stats
+    markets = without_exceptions do
+      exchange_client.marketdata['return']['markets']
+    end
+    return unless data
 
-      pool_stats.each do |stat_name, stat_value|
-        api.emit_point("pools.#{ pool_name.to_s.gsub(/\W/, '_') }.#{ stat_name }".downcase, stat_value)
-      end
+    market = markets[pair]
+    raise ArgumentError.new("Unknown exchange pair #{ pair }") unless market
+
+    last_price = market['lasttradeprice'].to_f
+    if last_price > 0
+      api.emit_point("exchange.cryptsy.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
+    end
+  end
+
+  def required_config_values(category, category_config, *keys)
+    values = category_config.values_at(*keys)
+
+    values.each_with_index do |value, index|
+      raise ArgumentError.new("#{ category }[n].#{ keys[index] } key is required") unless value
+    end
+
+    values
+  end
+
+  def without_exceptions
+    begin
+      yield
+    rescue Exception => e
+      $stderr.puts "Exception reporting cgminer stats for #{ hostname }:#{ port } : #{ e }"
+      e.backtrace.to_a.each { |backtrace_line| $stderr.puts backtrace_line }
+      nil
     end
   end
 end

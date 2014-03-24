@@ -1,7 +1,7 @@
 datadog:
   api_key: '1234'
 
-cgminer:
+miners:
   -
     name: miner1
     hostname: "127.0.0.1"
@@ -13,3 +13,7 @@ pools:
     user_id: 123
     url: https://pool.verters.com/index.php
     api_key: 1234
+
+exchange_rates:
+  -
+    pair: 'VTC/BTC'
