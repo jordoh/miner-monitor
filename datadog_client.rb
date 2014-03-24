@@ -38,7 +38,50 @@ class DatadogClient
     raise ArgumentError.new('cgminer.name key is required') unless name
     raise ArgumentError.new('cgminer.hostname key is required') unless hostname
 
-    puts cgminer_config.inspect
+    client = CGMiner::API::Client.new(hostname, port || 4028)
+
+    summary = begin
+      client.summary.body.first
+    rescue Exception => e
+      $stderr.puts "Exception reporting cgminer stats for #{ hostname }:#{ port } : #{ e }"
+      e.backtrace.to_a.each { |backtrace_line| $stderr.puts backtrace_line }
+      return
+    end
+
+    [
+      [ 'MHS 5s', 'hashrate.5s'],
+      [ 'MHS av', 'hashrate.average'],
+
+      [ 'Accepted',     'shares.accepted'],
+      [ 'Rejected',     'shares.rejected'],
+      [ 'Discarded',    'shares.discarded'],
+      [ 'Stale',        'shares.stale'],
+      [ 'Work Utility', 'shares.work_utility'],
+
+      [ 'Pool Rejected%', 'pool.reject_rate']
+    ].each do |(summary_key, stat_name)|
+      api.emit_point("miner.summary.#{ stat_name }", summary[summary_key] || 0, :host => name)
+    end
+
+    client.devs.body.each do |device|
+      device_name = "gpu#{ device['GPU'] }"
+
+      [
+        [ 'Temperature',  'temperature' ],
+        [ 'Fan Speed',    'fan.speed' ],
+        [ 'Fan Percent',  'fan.percent' ],
+        [ 'GPU Activity', 'activity' ],
+
+        [ 'MHS 5s', 'hashrate.5s' ],
+        [ 'MHS av', 'hashrate.average' ],
+
+        [ 'Device Hardware%', 'hardware_rate' ],
+        [ 'Device Rejected%', 'reject_rate' ],
+
+      ].each do |(device_key, stat_name)|
+        api.emit_point("miner.devices.#{ device_name }.#{ stat_name }", device[device_key] || 0, :host => name, :device => device_name)
+      end
+    end
   end
 
   def report_pools_stats(api, pool_configs)
