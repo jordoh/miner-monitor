@@ -94,7 +94,7 @@ class DatadogClient
   end
 
   def report_exchange_rates_stats(api, exchange_rate_config)
-    pair = required_config_values('exchange_rates', exchange_rate_config, 'pair')
+    pair = required_config_values('exchange_rates', exchange_rate_config, 'pair').first
 
     exchange_client = Cryptsy::API::Client.new
 
