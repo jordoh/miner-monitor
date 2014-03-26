@@ -3,7 +3,7 @@ require 'cryptsy/api'
 require 'dogapi'
 require 'yaml'
 
-require_relative 'pools/mpos'
+require_relative 'pools'
 
 class DatadogClient
   def initialize(config_path)
@@ -82,12 +82,7 @@ class DatadogClient
   def report_pools_stats(api, pool_config)
     pool_name, pool_type = required_config_values('pools', pool_config, 'name', 'type')
 
-    pool_class_name = Pools.constants.detect do |pool_class_name|
-      pool_class_name.to_s.downcase == pool_type.downcase
-    end
-    raise ArgumentError.new("Unknown pools[n].type key: #{ pool_type }") unless pool_class_name
-
-    pool_stats = Pools.const_get(pool_class_name).new(pool_config).stats
+    pool_stats = Pools.klass(pool_type).new(pool_config).stats
     pool_stats.each do |stat_name, stat_value|
       api.emit_point("pool.#{ pool_name.to_s.gsub(/\W/, '_') }.#{ stat_name }".downcase, stat_value)
     end
