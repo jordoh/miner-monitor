@@ -10,3 +10,4 @@ module Pools
 end
 
 require_relative 'pools/mpos'
+require_relative 'pools/waffle_pool'
