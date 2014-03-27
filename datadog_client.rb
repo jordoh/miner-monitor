@@ -121,7 +121,7 @@ class DatadogClient
     begin
       yield
     rescue Exception => e
-      $stderr.puts "Exception reporting cgminer stats for #{ hostname }:#{ port } : #{ e }"
+      $stderr.puts e.to_s
       e.backtrace.to_a.each { |backtrace_line| $stderr.puts backtrace_line }
       nil
     end
