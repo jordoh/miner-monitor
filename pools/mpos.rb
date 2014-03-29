@@ -16,6 +16,7 @@ class Pools::Mpos
     {
       :balance => balance,
       :hashrate => hashrate,
+      :difficulty => difficulty,
       :payout_per_day => payout_per_day
     }
   end
@@ -31,6 +32,10 @@ class Pools::Mpos
 
   def sharerate
     request :getusersharerate
+  end
+
+  def difficulty
+    request :getdifficulty
   end
 
   def workers
