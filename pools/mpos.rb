@@ -48,7 +48,11 @@ class Pools::Mpos
     return nil unless transactions.size > 1
 
     total_payout = transactions.reduce(0) do |sum, transaction|
-      sum + (transaction['type'] == 'Credit' ? transaction['amount'] : 0)
+      type, confirmations = transaction.values_at('type', 'confirmations')
+
+      # A -1 confirmation value indicates an orphaned block (no payout)
+
+      sum + (type == 'Credit' && confirmations.to_i != -1  ? transaction['amount'] : 0)
     end
 
     seconds_elapsed = Time.parse(transactions.first['timestamp']) - Time.parse(transactions.last['timestamp'])
