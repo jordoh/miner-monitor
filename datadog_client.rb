@@ -55,12 +55,10 @@ class DatadogClient
 
       [ 'Pool Rejected%', 'pool.reject_rate']
     ].each do |(summary_key, stat_name)|
-      api.emit_point("miner.summary.#{ stat_name }", summary[summary_key] || 0, :host => name)
+      api.emit_point("miner.summary.#{ stat_name }", summary[summary_key] || 0, :tags => [ "miner:#{ name }"])
     end
 
     client.devs.body.each do |device|
-      device_name = "gpu#{ device['GPU'] }"
-
       [
         [ 'Temperature',  'temperature' ],
         [ 'Fan Speed',    'fan.speed' ],
@@ -74,7 +72,7 @@ class DatadogClient
         [ 'Device Rejected%', 'reject_rate' ],
 
       ].each do |(device_key, stat_name)|
-        api.emit_point("miner.devices.#{ device_name }.#{ stat_name }", device[device_key] || 0, :host => name, :device => device_name)
+        api.emit_point("miner.devices.#{ stat_name }", device[device_key] || 0, :tags => [ "miner:#{ name }", "gpu:#{ device['GPU'] }" ])
       end
     end
   end
@@ -84,13 +82,14 @@ class DatadogClient
 
     pool_stats = Pools.klass(pool_type).new(pool_config).stats
     pool_stats.each do |stat_name, stat_value|
-      api.emit_point("pool.#{ pool_name.to_s.gsub(/\W/, '_') }.#{ stat_name }".downcase, stat_value)
+      api.emit_point("pool.#{ stat_name }".downcase, stat_value, :tags => [ "pool:#{ pool_name }"])
     end
   end
 
   def report_exchange_rates_stats(api, exchange_rate_config)
     pair = required_config_values('exchange_rates', exchange_rate_config, 'pair').first
 
+    exchange_name = 'cryptsy'
     exchange_client = Cryptsy::API::Client.new
 
     markets_data = without_exceptions do
@@ -103,7 +102,7 @@ class DatadogClient
 
     last_price = market_data['lasttradeprice'].to_f
     if last_price > 0
-      api.emit_point("exchange.cryptsy.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
+      api.emit_point("exchange.#{ pair.downcase.gsub(/\W/, '_') }", last_price, :tags => [ "exchange:#{ exchange_name }"])
     end
   end
 
