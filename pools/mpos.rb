@@ -31,9 +31,8 @@ class Pools::Mpos
 
     transactions.map do |transaction|
       {
-        :id => transaction['id'],
-        :time => Time.parse(transaction['timestamp']),
         :name => 'payout',
+        :time => Time.parse("#{ transaction['timestamp'] } UTC").localtime,
         :title => "#{ transaction['amount' ]} sent to #{ transaction['coin_address'] } (#{ transaction['txid'] })"
       }
     end
