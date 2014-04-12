@@ -1,3 +1,4 @@
+require 'afstatsd'
 require 'cgminer/api'
 require 'cryptsy/api'
 require 'dogapi'
@@ -12,7 +13,8 @@ class DatadogClient
   end
 
   def run
-    api = Dogapi::Client.new(datadog_config['api_key'])
+    api = Statsd.new
+    #api = Dogapi::Client.new(datadog_config['api_key'])
 
     config.each do |metric_name, metric_configs|
       method_name = "report_#{ metric_name }_stats"
@@ -55,7 +57,8 @@ class DatadogClient
 
       [ 'Pool Rejected%', 'pool.reject_rate']
     ].each do |(summary_key, stat_name)|
-      api.emit_point("miner.summary.#{ stat_name }", summary[summary_key] || 0, :tags => [ "miner:#{ name }"])
+      api.gauge("miner.#{ name }.summary.#{ stat_name }", summary[summary_key] || 0)
+      #api.emit_point("miner.summary.#{ stat_name }", summary[summary_key] || 0, :tags => [ "miner:#{ name }"])
     end
 
     client.devs.body.each do |device|
@@ -72,7 +75,8 @@ class DatadogClient
         [ 'Device Rejected%', 'reject_rate' ],
 
       ].each do |(device_key, stat_name)|
-        api.emit_point("miner.devices.#{ stat_name }", device[device_key] || 0, :tags => [ "miner:#{ name }", "gpu:#{ device['GPU'] }" ])
+        api.gauge("miner.#{ name }.devices.#{ device['GPU'] }.#{ stat_name }", device[device_key] || 0)
+        #api.emit_point("miner.devices.#{ stat_name }", device[device_key] || 0, :tags => [ "miner:#{ name }", "gpu:#{ device['GPU'] }" ])
       end
     end
   end
@@ -82,7 +86,8 @@ class DatadogClient
 
     pool_stats = Pools.klass(pool_type).new(pool_config).stats
     pool_stats.each do |stat_name, stat_value|
-      api.emit_point("pool.#{ stat_name }".downcase, stat_value, :tags => [ "pool:#{ pool_name }"])
+      api.gauge("pool.#{ pool_name }.#{ stat_name }".downcase, stat_value)
+      #api.emit_point("pool.#{ stat_name }".downcase, stat_value, :tags => [ "pool:#{ pool_name }"])
     end
   end
 
@@ -102,7 +107,8 @@ class DatadogClient
 
     last_price = market_data['lasttradeprice'].to_f
     if last_price > 0
-      api.emit_point("exchange.#{ pair.downcase.gsub(/\W/, '_') }", last_price, :tags => [ "exchange:#{ exchange_name }"])
+      api.emit_point("exchange.#{ exchange_name }.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
+      #api.emit_point("exchange.#{ pair.downcase.gsub(/\W/, '_') }", last_price, :tags => [ "exchange:#{ exchange_name }"])
     end
   end
 
