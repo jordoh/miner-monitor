@@ -5,8 +5,8 @@ class Reporters::AppFirst
     @api = Statsd.new
   end
 
-  def report(name, value)
-    @api.gauge(name, value)
+  def report(source, name, value)
+    @api.gauge("#{ source }.#{ name }", value)
   end
 
   def finalize

@@ -7,8 +7,8 @@ class Reporters::Datadog
     @api = Dogapi::Client.new(api_key)
   end
 
-  def report(name, value)
-    @api.emit_point(name, value)
+  def report(source, name, value)
+    @api.emit_point(name, value, :tags => [ source ])
   end
 
   def finalize

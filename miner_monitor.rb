@@ -60,7 +60,7 @@ class MinerMonitor
 
       [ 'Pool Rejected%', 'pool.reject_rate']
     ].each do |(summary_key, stat_name)|
-      reporter.report("miner.#{ name }.summary.#{ stat_name }", summary[summary_key] || 0)
+      reporter.report(name, "miner.summary.#{ stat_name }", summary[summary_key] || 0)
     end
 
     client.devs.body.each do |device|
@@ -77,7 +77,7 @@ class MinerMonitor
         [ 'Device Rejected%', 'reject_rate' ],
 
       ].each do |(device_key, stat_name)|
-        reporter.report("miner.#{ name }.devices.#{ device['GPU'] }.#{ stat_name }", device[device_key] || 0)
+        reporter.report("#{ name }.gpu#{ device['GPU'] }", "miner.devices.#{ stat_name }", device[device_key] || 0)
       end
     end
   end
@@ -87,7 +87,7 @@ class MinerMonitor
 
     pool_stats = Pools.klass(pool_type).new(pool_config).stats
     pool_stats.each do |stat_name, stat_value|
-      reporter.report("pool.#{ pool_name }.#{ stat_name }".downcase, stat_value)
+      reporter.report(pool_name, "pool.#{ stat_name }".downcase, stat_value)
     end
   end
 
@@ -107,7 +107,7 @@ class MinerMonitor
 
     last_price = market_data['lasttradeprice'].to_f
     if last_price > 0
-      reporter.report("exchange.#{ exchange_name }.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
+      reporter.report(exchange_name, "exchange.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
     end
   end
 

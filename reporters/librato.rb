@@ -12,8 +12,8 @@ class Reporters::Librato
     @queue = Librato::Metrics::Queue.new
   end
 
-  def report(name, value)
-    @queue.add name => value
+  def report(source, name, value)
+    @queue.add name => { :source => source, :value => value }
   end
 
   def finalize
