@@ -11,7 +11,7 @@ class Reporters::Datadog
     @api.emit_point(name, value, :tags => [ source ])
   end
 
-  def report_event(source, name, title, id, time)
+  def report_event(source, name, title, time)
     raise ArgumentError.new('datadog reporter does not support events')
   end
 

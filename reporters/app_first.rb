@@ -9,7 +9,7 @@ class Reporters::AppFirst
     @api.gauge("#{ source }.#{ name }", value)
   end
 
-  def report_event(source, name, title, id, time)
+  def report_event(source, name, title, time)
     raise ArgumentError.new('appfirst reporter does not support events')
   end
 

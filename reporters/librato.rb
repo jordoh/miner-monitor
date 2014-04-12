@@ -17,8 +17,17 @@ class Reporters::Librato
     @queue.add name => { :source => source, :value => value }
   end
 
-  def report_event(source, name, title, id, time)
-    @annotator.add name, title, :source => source, :id => id, :start_time => time.to_i, :end_time => time.to_i
+  def report_event(source, name, title, time)
+    timestamp = time.to_i
+
+    event_data = @annotator.fetch name, :sources => [ source ], :start_time => timestamp, :end_time => timestamp
+    if event_data && event_data['events'] && event_data['events'][source].is_a?(Array)
+      return if event_data['events'][source].any? do |event|
+        event['start_time'] == timestamp && event['title'] == title
+      end
+    end
+
+    @annotator.add name, title, :source => source, :start_time => timestamp, :end_time => timestamp
   end
 
   def finalize
