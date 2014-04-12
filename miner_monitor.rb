@@ -1,20 +1,20 @@
-require 'afstatsd'
 require 'cgminer/api'
 require 'cryptsy/api'
-require 'dogapi'
 require 'yaml'
 
 require_relative 'pools'
 
-class DatadogClient
+class MinerMonitor
   def initialize(config_path)
     @config = YAML::load(File.read(config_path))
-    @datadog_config = @config.delete('datadog')
   end
 
   def run
-    api = Statsd.new
-    #api = Dogapi::Client.new(datadog_config['api_key'])
+    reporter_config = @config.delete('reporter') or raise ArgumentError.new('No reporter configured')
+    reporter_type, reporter_config = reporter_config.values_at('type', 'config')
+    raise ArgumentError.new('reporter.type is required') unless reporter_type
+
+    reporter = Reporters.klass(reporter_type).new(reporter_config || {}).stats
 
     config.each do |metric_name, metric_configs|
       method_name = "report_#{ metric_name }_stats"
@@ -26,16 +26,16 @@ class DatadogClient
       metric_configs = [ metric_configs ] unless metric_configs.is_a?(Array)
 
       metric_configs.each do |metric_config|
-        send method_name, api, metric_config
+        send method_name, reporter, metric_config
       end
     end
   end
 
   private
 
-  attr_reader :config, :datadog_config
+  attr_reader :config
 
-  def report_miners_stats(api, miner_config)
+  def report_miners_stats(reporter, miner_config)
     name, hostname = required_config_values('miners', miner_config, 'name', 'hostname')
 
     client = CGMiner::API::Client.new(hostname, miner_config['port'] || 4028)
@@ -57,8 +57,7 @@ class DatadogClient
 
       [ 'Pool Rejected%', 'pool.reject_rate']
     ].each do |(summary_key, stat_name)|
-      api.gauge("miner.#{ name }.summary.#{ stat_name }", summary[summary_key] || 0)
-      #api.emit_point("miner.summary.#{ stat_name }", summary[summary_key] || 0, :tags => [ "miner:#{ name }"])
+      reporter.report("miner.#{ name }.summary.#{ stat_name }", summary[summary_key] || 0)
     end
 
     client.devs.body.each do |device|
@@ -75,23 +74,21 @@ class DatadogClient
         [ 'Device Rejected%', 'reject_rate' ],
 
       ].each do |(device_key, stat_name)|
-        api.gauge("miner.#{ name }.devices.#{ device['GPU'] }.#{ stat_name }", device[device_key] || 0)
-        #api.emit_point("miner.devices.#{ stat_name }", device[device_key] || 0, :tags => [ "miner:#{ name }", "gpu:#{ device['GPU'] }" ])
+        reporter.report("miner.#{ name }.devices.#{ device['GPU'] }.#{ stat_name }", device[device_key] || 0)
       end
     end
   end
 
-  def report_pools_stats(api, pool_config)
+  def report_pools_stats(reporter, pool_config)
     pool_name, pool_type = required_config_values('pools', pool_config, 'name', 'type')
 
     pool_stats = Pools.klass(pool_type).new(pool_config).stats
     pool_stats.each do |stat_name, stat_value|
-      api.gauge("pool.#{ pool_name }.#{ stat_name }".downcase, stat_value)
-      #api.emit_point("pool.#{ stat_name }".downcase, stat_value, :tags => [ "pool:#{ pool_name }"])
+      reporter.report("pool.#{ pool_name }.#{ stat_name }".downcase, stat_value)
     end
   end
 
-  def report_exchange_rates_stats(api, exchange_rate_config)
+  def report_exchange_rates_stats(reporter, exchange_rate_config)
     pair = required_config_values('exchange_rates', exchange_rate_config, 'pair').first
 
     exchange_name = 'cryptsy'
@@ -107,8 +104,7 @@ class DatadogClient
 
     last_price = market_data['lasttradeprice'].to_f
     if last_price > 0
-      api.emit_point("exchange.#{ exchange_name }.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
-      #api.emit_point("exchange.#{ pair.downcase.gsub(/\W/, '_') }", last_price, :tags => [ "exchange:#{ exchange_name }"])
+      reporter.report("exchange.#{ exchange_name }.#{ pair.downcase.gsub(/\W/, '_') }", last_price)
     end
   end
 

@@ -3,6 +3,6 @@
 require 'rubygems'
 require 'bundler/setup'
 
-require_relative 'datadog_client'
+require_relative 'miner_monitor'
 
-DatadogClient.new(File.expand_path('config.yml', File.dirname(__FILE__))).run
+MinerMonitor.new(File.expand_path('config.yml', File.dirname(__FILE__))).run

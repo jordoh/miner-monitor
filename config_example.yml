@@ -1,5 +1,7 @@
-datadog:
-  api_key: '1234'
+reporter:
+  type: datadog
+  config:
+    api_key: '1234'
 
 miners:
   -
