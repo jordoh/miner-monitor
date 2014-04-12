@@ -21,6 +21,24 @@ class Pools::Mpos
     }
   end
 
+  def events
+    data = request :getusertransactions
+    transactions = data['transactions']
+
+    transactions.keep_if do |transaction|
+      transaction['type'] == 'Debit_AP'
+    end
+
+    transactions.map do |transaction|
+      {
+        :id => transaction['id'],
+        :time => Time.parse(transaction['timestamp']),
+        :name => 'payout',
+        :title => "#{ transaction['amount' ]} sent to #{ transaction['coin_address'] } (#{ transaction['txid'] })"
+      }
+    end
+  end
+
   def balance
     data = request :getuserbalance
     data.values_at('confirmed', 'unconfirmed').reduce(0) { |sum, amount| sum + amount }
@@ -66,6 +84,9 @@ class Pools::Mpos
   attr_reader :url, :user_id, :api_key
 
   def request(action)
+    @cached_data ||= {}
+    return @cached_data[action].dup if @cached_data.has_key?(action)
+
     # See https://github.com/MPOS/php-mpos/wiki/API-Reference
     params = {
       :page => 'api',
