@@ -7,8 +7,12 @@ class Reporters::Datadog
     @api = Dogapi::Client.new(api_key)
   end
 
-  def report(source, name, value)
+  def report_metric(source, name, value)
     @api.emit_point(name, value, :tags => [ source ])
+  end
+
+  def report_event(source, name, title, id, time)
+    raise ArgumentError.new('datadog reporter does not support events')
   end
 
   def finalize

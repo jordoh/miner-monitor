@@ -5,8 +5,12 @@ class Reporters::AppFirst
     @api = Statsd.new
   end
 
-  def report(source, name, value)
+  def report_metric(source, name, value)
     @api.gauge("#{ source }.#{ name }", value)
+  end
+
+  def report_event(source, name, title, id, time)
+    raise ArgumentError.new('appfirst reporter does not support events')
   end
 
   def finalize
