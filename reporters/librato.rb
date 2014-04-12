@@ -1,4 +1,4 @@
-require 'librato'
+require 'librato/metrics'
 
 class Reporters::Librato
   def initialize(config)

@@ -3,6 +3,7 @@ require 'cryptsy/api'
 require 'yaml'
 
 require_relative 'pools'
+require_relative 'reporters'
 
 class MinerMonitor
   def initialize(config_path)
@@ -14,7 +15,7 @@ class MinerMonitor
     reporter_type, reporter_config = reporter_config.values_at('type', 'config')
     raise ArgumentError.new('reporter.type is required') unless reporter_type
 
-    reporter = Reporters.klass(reporter_type).new(reporter_config || {}).stats
+    reporter = Reporters.klass(reporter_type).new(reporter_config || {})
 
     config.each do |metric_name, metric_configs|
       method_name = "report_#{ metric_name }_stats"
@@ -29,6 +30,8 @@ class MinerMonitor
         send method_name, reporter, metric_config
       end
     end
+
+    reporter.finalize
   end
 
   private
