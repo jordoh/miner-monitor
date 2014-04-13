@@ -95,7 +95,7 @@ class MinerMonitor
     if pool_client.respond_to?(:events)
       without_exceptions do
         pool_client.events.each do |event|
-          event_name, event_time, event_title = event.values_at(:name, :id, :time, :title)
+          event_name, event_time, event_title = event.values_at(:name, :time, :title)
           reporter.report_event(pool_name, event_name, event_title, event_time)
         end
       end
