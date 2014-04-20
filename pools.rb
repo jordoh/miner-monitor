@@ -9,5 +9,6 @@ module Pools
   end
 end
 
+require_relative 'pools/clever_mining'
 require_relative 'pools/mpos'
 require_relative 'pools/waffle_pool'

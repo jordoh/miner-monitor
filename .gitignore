@@ -1,4 +1,5 @@
 .bundle
 .idea
-Gemfile.lock
 config.yml
+Gemfile.lock
+test.rb
