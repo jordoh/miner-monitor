@@ -11,4 +11,5 @@ end
 
 require_relative 'pools/clever_mining'
 require_relative 'pools/mpos'
+require_relative 'pools/simple_vert'
 require_relative 'pools/waffle_pool'
