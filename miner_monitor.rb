@@ -87,9 +87,11 @@ class MinerMonitor
 
     pool_client = Pools.klass(pool_type).new(pool_config)
 
-    pool_stats = pool_client.stats
-    pool_stats.each do |stat_name, stat_value|
-      reporter.report_metric(pool_name, "pool.#{ stat_name }".downcase, stat_value)
+    without_exceptions do
+      pool_stats = pool_client.stats
+      pool_stats.each do |stat_name, stat_value|
+        reporter.report_metric(pool_name, "pool.#{ stat_name }".downcase, stat_value)
+      end
     end
 
     if pool_client.respond_to?(:events)
